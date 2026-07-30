@@ -1,0 +1,24 @@
+# Microsoft Office temporary files
+~$*
+
+# Dependencies and Next.js build output
+node_modules/
+.next/
+out/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+!.env.example
+neon_connect.txt
+
+# Prisma generated client
+app/generated/prisma/
+
+# Logs and local tooling
+*.log
+*.tsbuildinfo
+.pnpm-store/
+.vercel/
+.DS_Store
