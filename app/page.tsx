@@ -1,77 +1,83 @@
+import { PromptForm } from "@/app/components/prompt-form";
+import {
+  PromptList,
+  type PromptItem
+} from "@/app/components/prompt-list";
 import { getPrisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-type NoteView = {
-  id: string;
-  title: string;
-  createdAt: Date;
-};
-
-async function loadNotes(): Promise<{
-  notes: NoteView[];
+async function loadData(): Promise<{
+  prompts: PromptItem[];
+  friendEmails: string[];
   error: string | null;
 }> {
   try {
-    const notes = await getPrisma().note.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 20
-    });
+    const [notes, friends] = await Promise.all([
+      getPrisma().note.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 100
+      }),
+      getPrisma().friend.findMany({
+        orderBy: { createdAt: "asc" },
+        select: { email: true }
+      })
+    ]);
 
-    return { notes, error: null };
-  } catch (error) {
-    console.error("Failed to load notes:", error);
     return {
-      notes: [],
-      error: "Не удалось подключиться к NeonDB. Проверьте переменную DATABASE_URL."
+      prompts: notes.map((note) => ({
+        ...note,
+        createdAt: note.createdAt.toISOString()
+      })),
+      friendEmails: friends.map((friend) => friend.email),
+      error: null
+    };
+  } catch (error) {
+    console.error("Failed to load ProBook data:", error);
+    return {
+      prompts: [],
+      friendEmails: [],
+      error:
+        "Не удалось подключиться к NeonDB. Проверьте DATABASE_URL и примените миграции."
     };
   }
 }
 
 export default async function Home() {
-  const { notes, error } = await loadNotes();
+  const { prompts, friendEmails, error } = await loadData();
 
   return (
-    <main>
-      <section className="hero">
+    <main className="page-shell">
+      <section className="page-intro">
         <p className="eyebrow">Next.js · Prisma · Neon</p>
         <h1>ProBook</h1>
         <p className="lead">
-          Минимальная основа сервиса обмена книжными промтами.
+          Сохраняйте полезные книжные промты и делитесь ими с друзьями.
         </p>
+      </section>
 
-        <div className="database-card">
-          <div className="database-card__header">
+      <section className="content-grid">
+        <PromptForm />
+
+        <div className="content-card">
+          <div className="card-header">
             <div>
-              <p className="label">Данные из PostgreSQL</p>
-              <h2>Заметки</h2>
+              <p className="eyebrow">Библиотека</p>
+              <h2>Все промты</h2>
             </div>
             <span className={error ? "status status--error" : "status"}>
-              {error ? "Нет подключения" : "NeonDB подключена"}
+              {error ? "Нет подключения" : `${prompts.length} шт.`}
             </span>
           </div>
 
           {error ? (
             <p className="message message--error">{error}</p>
-          ) : notes.length === 0 ? (
-            <p className="message">
-              Таблица пуста. Выполните команду <code>pnpm db:seed</code>.
-            </p>
           ) : (
-            <ul className="notes">
-              {notes.map((note) => (
-                <li key={note.id}>
-                  <span>{note.title}</span>
-                  <time dateTime={note.createdAt.toISOString()}>
-                    {new Intl.DateTimeFormat("ru-RU", {
-                      dateStyle: "medium",
-                      timeStyle: "short"
-                    }).format(note.createdAt)}
-                  </time>
-                </li>
-              ))}
-            </ul>
+            <PromptList
+              prompts={prompts}
+              friendEmails={friendEmails}
+            />
           )}
         </div>
       </section>
