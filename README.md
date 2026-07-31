@@ -51,6 +51,27 @@ DIRECT_URL="postgresql://USER:PASSWORD@HOST.REGION.aws.neon.tech/neondb?sslmode=
 
 Файл `.env` исключён из Git. Не коммитьте реальные строки подключения.
 
+### Вход по email и паролю
+
+Добавьте в `.env.local` и в Vercel секрет Auth.js:
+
+```dotenv
+AUTH_SECRET="случайная-длинная-строка"
+```
+
+`AUTH_SECRET` можно сгенерировать командой `npx auth secret`. При первом входе
+пользователь вводит свой email и общий начальный пароль:
+
+```text
+friend
+```
+
+Если email ещё не зарегистрирован, приложение создаёт пользователя. Пароль
+хранится в PostgreSQL только в виде `scrypt`-хеша. После входа пользователь
+может изменить пароль в личном кабинете. Auth.js хранит подписанную сервером
+сессию в защищённой cookie; стабильный идентификатор пользователя включён в
+сессию и проверяется на сервере.
+
 ## 3. Миграция и начальные данные
 
 Для новой базы:
@@ -79,7 +100,8 @@ pnpm dev
 ## 5. Деплой на Vercel
 
 1. Импортируйте GitHub-репозиторий в Vercel.
-2. Добавьте `DATABASE_URL` и `DIRECT_URL` в **Project Settings → Environment Variables**.
+2. Добавьте `DATABASE_URL`, `DIRECT_URL` и `AUTH_SECRET` в
+   **Project Settings → Environment Variables**.
    При Neon Vercel Integration вместо `DIRECT_URL` можно использовать
    автоматически созданную `DATABASE_URL_UNPOOLED`.
    Для реальной отправки писем также добавьте:
@@ -116,3 +138,19 @@ pnpm db:deploy    # применение готовых миграций
 pnpm db:seed      # минимальные начальные данные
 pnpm db:studio    # Prisma Studio
 ```
+
+## Локальный View DB
+
+Диагностическая страница `/view-db` доступна только в режиме разработки и не
+публикует CRUD-интерфейс на Vercel. Она использует:
+
+```dotenv
+LOCAL_DATABASE_URL="postgresql://postgres:postgres@localhost:5432/probook"
+DATABASE_URL="postgresql://...Neon..."
+```
+
+Запустите `pnpm dev`, откройте
+[http://localhost:3000/view-db](http://localhost:3000/view-db), выберите базу и
+нажмите **Показать таблицы**. Из интерфейса можно просматривать строки с
+пагинацией, создавать их, изменять и удалять. Изменение и удаление доступны
+только таблицам с первичным ключом. Строки подключения не передаются в браузер.

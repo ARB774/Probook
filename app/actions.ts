@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getPrisma } from "@/lib/prisma";
+import { requireUser } from "@/lib/auth-user";
 
 export type FormState = {
   status: "idle" | "success" | "error";
@@ -27,8 +28,11 @@ export async function createPrompt(
   _previousState: FormState,
   formData: FormData
 ): Promise<FormState> {
+  const user = await requireUser();
   const title = readField(formData, "title");
   const content = readField(formData, "content");
+  const visibility =
+    readField(formData, "visibility") === "PUBLIC" ? "PUBLIC" : "PRIVATE";
 
   if (title.length < 2 || title.length > 160) {
     return {
@@ -46,19 +50,25 @@ export async function createPrompt(
 
   try {
     const prisma = getPrisma();
-    const owner = await prisma.user.upsert({
-      where: { email: "app@probook.local" },
+    const category = await prisma.category.upsert({
+      where: { category: "Без категории" },
       update: {},
-      create: {
-        email: "app@probook.local",
-        name: "ProBook"
-      }
+      create: { category: "Без категории" }
     });
 
-    await prisma.note.create({
-      data: { title, content, ownerId: owner.id }
+    await prisma.txt.create({
+      data: {
+        title,
+        content,
+        userId: user.id,
+        categoryId: category.id,
+        visibility,
+        publishedAt: visibility === "PUBLIC" ? new Date() : null
+      }
     });
     revalidatePath("/");
+    revalidatePath("/dashboard");
+    revalidatePath("/my-prompts");
 
     return {
       status: "success",
@@ -77,6 +87,7 @@ export async function createFriend(
   _previousState: FormState,
   formData: FormData
 ): Promise<FormState> {
+  await requireUser();
   const name = readField(formData, "name");
   const email = readField(formData, "email").toLowerCase();
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -118,6 +129,7 @@ export async function createFriend(
 export async function sendPromptToFriends(
   promptId: string
 ): Promise<SendPromptState> {
+  const user = await requireUser();
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM_EMAIL;
 
@@ -131,8 +143,11 @@ export async function sendPromptToFriends(
 
   try {
     const [prompt, friends] = await Promise.all([
-      getPrisma().note.findUnique({
-        where: { id: promptId },
+      getPrisma().txt.findFirst({
+        where: {
+          id: promptId,
+          OR: [{ userId: user.id }, { visibility: "PUBLIC" }]
+        },
         select: {
           id: true,
           title: true,

@@ -11,17 +11,20 @@ export type PromptItem = {
   id: string;
   title: string;
   content: string;
+  visibility: "PRIVATE" | "PUBLIC";
   createdAt: string;
 };
 
 type PromptListProps = {
   prompts: PromptItem[];
   friendCount: number;
+  canSend: boolean;
 };
 
 export function PromptList({
   prompts,
-  friendCount
+  friendCount,
+  canSend
 }: PromptListProps) {
   const [selected, setSelected] = useState<PromptItem | null>(null);
   const [sendState, setSendState] = useState<SendPromptState>({
@@ -87,6 +90,9 @@ export function PromptList({
             >
               {prompt.title}
             </button>
+            <span className="prompt-visibility">
+              {prompt.visibility === "PRIVATE" ? "Приватный" : "Публичный"}
+            </span>
             <time dateTime={prompt.createdAt}>
               {new Intl.DateTimeFormat("ru-RU", {
                 dateStyle: "medium",
@@ -123,7 +129,11 @@ export function PromptList({
             <div className="prompt-content">{selected.content}</div>
 
             <div className="modal-actions">
-              {friendCount > 0 ? (
+              {!canSend ? (
+                <Link className="button" href="/login">
+                  Войти для отправки
+                </Link>
+              ) : friendCount > 0 ? (
                 <button
                   className="button"
                   type="button"

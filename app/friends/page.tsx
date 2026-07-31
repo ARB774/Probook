@@ -1,4 +1,5 @@
 import { FriendForm } from "@/app/components/friend-form";
+import { requireUser } from "@/lib/auth-user";
 import { getPrisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -36,6 +37,7 @@ async function loadFriends(): Promise<{
 }
 
 export default async function FriendsPage() {
+  await requireUser();
   const { friends, error } = await loadFriends();
 
   return (

@@ -41,7 +41,7 @@ async function main() {
 
   const existingPrompt = await prisma.txt.findFirst({
     where: {
-      ownerId: user.id,
+      userId: user.id,
       title: "Тестовый публичный промт"
     }
   });
@@ -59,7 +59,7 @@ async function main() {
       })
     : await prisma.txt.create({
         data: {
-          ownerId: user.id,
+          userId: user.id,
           title: "Тестовый публичный промт",
           content: "Проверочный текст промта для схемы ProBook.",
           categoryId: category.id,

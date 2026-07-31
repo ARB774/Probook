@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AuthNavigation } from "@/app/components/auth-navigation";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -19,10 +20,7 @@ export default function RootLayout({
           <Link className="brand" href="/">
             ProBook
           </Link>
-          <nav aria-label="Основная навигация">
-            <Link href="/">Промты</Link>
-            <Link href="/friends">Друзья</Link>
-          </nav>
+          <AuthNavigation />
         </header>
         {children}
       </body>

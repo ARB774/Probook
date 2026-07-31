@@ -13,29 +13,34 @@ enum Visibility {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  notes     Note[]
-  prompts   Txt[]
-  votes     Vote[]
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  image         String?
+  emailVerified DateTime?
+  passwordHash  String?
+  createdAt     DateTime  @default(now())
+  notes         Note[]
+  prompts       Txt[]
+  votes         Vote[]
+  accounts      Account[]
+  sessions      Session[]
 }
 
 model Note {
   id        String   @id @default(uuid()) @db.Uuid
-  ownerId   String
+  userId    String   @map("ownerId")
   title     String
   content   String   @default("")
   createdAt DateTime @default(now())
-  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([ownerId])
+  @@index([userId])
 }
 
 model Txt {
   id          String     @id @default(cuid())
-  ownerId     String
+  userId      String     @map("ownerId")
   title       String
   content     String
   description String?
@@ -44,13 +49,50 @@ model Txt {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   publishedAt DateTime?
-  owner       User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   category    Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   tags        Tag[]
   votes       Vote[]
 
-  @@index([ownerId, updatedAt])
+  @@index([userId, updatedAt])
   @@index([visibility, createdAt])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
 }
 
 model Vote {

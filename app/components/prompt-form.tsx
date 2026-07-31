@@ -53,6 +53,14 @@ export function PromptForm() {
         />
       </label>
 
+      <label className="field">
+        <span>Видимость</span>
+        <select name="visibility" defaultValue="PRIVATE">
+          <option value="PRIVATE">Приватный — только мне</option>
+          <option value="PUBLIC">Публичный — виден всем</option>
+        </select>
+      </label>
+
       <div className="form-footer">
         <SubmitButton
           idleLabel="Сохранить промт"

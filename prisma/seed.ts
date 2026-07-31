@@ -24,21 +24,33 @@ async function main() {
     }
   });
 
-  const title = "Первая заметка из NeonDB";
-  const existingNote = await prisma.note.findFirst({ where: { title } });
+  const category = await prisma.category.upsert({
+    where: { category: "Seed" },
+    update: {},
+    create: { category: "Seed" }
+  });
+  const title = "Первый промт из NeonDB";
+  const existingPrompt = await prisma.txt.findFirst({
+    where: { userId: owner.id, title }
+  });
 
   const content =
     "Этот тестовый промт подтверждает, что ProBook читает данные из NeonDB.";
-  const note = existingNote
-    ? await prisma.note.update({
-        where: { id: existingNote.id },
-        data: existingNote.content ? {} : { content }
+  const prompt = existingPrompt
+    ? await prisma.txt.update({
+        where: { id: existingPrompt.id },
+        data: existingPrompt.content ? {} : { content }
       })
-    : await prisma.note.create({
-        data: { title, content, ownerId: owner.id }
+    : await prisma.txt.create({
+        data: {
+          title,
+          content,
+          userId: owner.id,
+          categoryId: category.id
+        }
       });
 
-  console.log(`Seed note is ready: ${note.title}`);
+  console.log(`Seed prompt is ready: ${prompt.title}`);
 }
 
 main()
