@@ -10,19 +10,16 @@ export const runtime = "nodejs";
 
 async function loadData(): Promise<{
   prompts: PromptItem[];
-  friendEmails: string[];
+  friendCount: number;
   error: string | null;
 }> {
   try {
-    const [notes, friends] = await Promise.all([
+    const [notes, friendCount] = await Promise.all([
       getPrisma().note.findMany({
         orderBy: { createdAt: "desc" },
         take: 100
       }),
-      getPrisma().friend.findMany({
-        orderBy: { createdAt: "asc" },
-        select: { email: true }
-      })
+      getPrisma().friend.count()
     ]);
 
     return {
@@ -30,14 +27,14 @@ async function loadData(): Promise<{
         ...note,
         createdAt: note.createdAt.toISOString()
       })),
-      friendEmails: friends.map((friend) => friend.email),
+      friendCount,
       error: null
     };
   } catch (error) {
     console.error("Failed to load ProBook data:", error);
     return {
       prompts: [],
-      friendEmails: [],
+      friendCount: 0,
       error:
         "Не удалось подключиться к NeonDB. Проверьте DATABASE_URL и примените миграции."
     };
@@ -45,7 +42,7 @@ async function loadData(): Promise<{
 }
 
 export default async function Home() {
-  const { prompts, friendEmails, error } = await loadData();
+  const { prompts, friendCount, error } = await loadData();
 
   return (
     <main className="page-shell">
@@ -76,7 +73,7 @@ export default async function Home() {
           ) : (
             <PromptList
               prompts={prompts}
-              friendEmails={friendEmails}
+              friendCount={friendCount}
             />
           )}
         </div>

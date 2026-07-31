@@ -1,7 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
+import {
+  sendPromptToFriends,
+  type SendPromptState
+} from "@/app/actions";
 
 export type PromptItem = {
   id: string;
@@ -12,14 +16,19 @@ export type PromptItem = {
 
 type PromptListProps = {
   prompts: PromptItem[];
-  friendEmails: string[];
+  friendCount: number;
 };
 
 export function PromptList({
   prompts,
-  friendEmails
+  friendCount
 }: PromptListProps) {
   const [selected, setSelected] = useState<PromptItem | null>(null);
+  const [sendState, setSendState] = useState<SendPromptState>({
+    status: "idle",
+    message: ""
+  });
+  const [isSending, startSending] = useTransition();
 
   useEffect(() => {
     if (!selected) {
@@ -41,19 +50,22 @@ export function PromptList({
     };
   }, [selected]);
 
-  const shareHref = useMemo(() => {
-    if (!selected || friendEmails.length === 0) {
-      return "";
+  function closeModal() {
+    setSelected(null);
+    setSendState({ status: "idle", message: "" });
+  }
+
+  function sendToFriends() {
+    if (!selected) {
+      return;
     }
 
-    const params = new URLSearchParams({
-      bcc: friendEmails.join(","),
-      subject: `Промт ProBook: ${selected.title}`,
-      body: `${selected.title}\n\n${selected.content}`
+    setSendState({ status: "idle", message: "" });
+    startSending(async () => {
+      const result = await sendPromptToFriends(selected.id);
+      setSendState(result);
     });
-
-    return `mailto:?${params.toString()}`;
-  }, [friendEmails, selected]);
+  }
 
   if (prompts.length === 0) {
     return (
@@ -89,7 +101,7 @@ export function PromptList({
         <div
           className="modal-backdrop"
           role="presentation"
-          onMouseDown={() => setSelected(null)}
+          onMouseDown={closeModal}
         >
           <section
             className="modal"
@@ -102,7 +114,7 @@ export function PromptList({
               className="modal-close"
               type="button"
               aria-label="Закрыть"
-              onClick={() => setSelected(null)}
+              onClick={closeModal}
             >
               ×
             </button>
@@ -111,10 +123,15 @@ export function PromptList({
             <div className="prompt-content">{selected.content}</div>
 
             <div className="modal-actions">
-              {shareHref ? (
-                <a className="button" href={shareHref}>
-                  Отправить друзьям
-                </a>
+              {friendCount > 0 ? (
+                <button
+                  className="button"
+                  type="button"
+                  disabled={isSending}
+                  onClick={sendToFriends}
+                >
+                  {isSending ? "Отправляем…" : "Отправить друзьям"}
+                </button>
               ) : (
                 <Link className="button" href="/friends">
                   Сначала добавьте друзей
@@ -123,11 +140,21 @@ export function PromptList({
               <button
                 className="button button--secondary"
                 type="button"
-                onClick={() => setSelected(null)}
+                onClick={closeModal}
               >
                 Закрыть
               </button>
             </div>
+
+            {sendState.message ? (
+              <p
+                className={`send-message send-message--${sendState.status}`}
+                role="status"
+                aria-live="polite"
+              >
+                {sendState.message}
+              </p>
+            ) : null}
           </section>
         </div>
       ) : null}

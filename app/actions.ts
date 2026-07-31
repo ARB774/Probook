@@ -8,9 +8,19 @@ export type FormState = {
   message: string;
 };
 
+export type SendPromptState = {
+  status: "idle" | "success" | "error";
+  message: string;
+};
+
 function readField(formData: FormData, name: string) {
   const value = formData.get(name);
   return typeof value === "string" ? value.trim() : "";
+}
+
+function extractEmailAddress(sender: string) {
+  const match = sender.match(/<([^>]+)>$/);
+  return match?.[1]?.trim() ?? sender.trim();
 }
 
 export async function createPrompt(
@@ -91,6 +101,103 @@ export async function createFriend(
     return {
       status: "error",
       message: "Не удалось добавить друга. Возможно, такой email уже есть."
+    };
+  }
+}
+
+export async function sendPromptToFriends(
+  promptId: string
+): Promise<SendPromptState> {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.RESEND_FROM_EMAIL;
+
+  if (!apiKey || !from) {
+    return {
+      status: "error",
+      message:
+        "Отправка не настроена. Добавьте RESEND_API_KEY и RESEND_FROM_EMAIL в Vercel."
+    };
+  }
+
+  try {
+    const [prompt, friends] = await Promise.all([
+      getPrisma().note.findUnique({
+        where: { id: promptId },
+        select: {
+          id: true,
+          title: true,
+          content: true
+        }
+      }),
+      getPrisma().friend.findMany({
+        orderBy: { createdAt: "asc" },
+        select: { email: true }
+      })
+    ]);
+
+    if (!prompt) {
+      return {
+        status: "error",
+        message: "Промт не найден."
+      };
+    }
+
+    const recipients = [
+      ...new Set(friends.map((friend) => friend.email.toLowerCase()))
+    ];
+
+    if (recipients.length === 0) {
+      return {
+        status: "error",
+        message: "Сначала добавьте хотя бы одного друга."
+      };
+    }
+
+    const senderAddress = extractEmailAddress(from);
+    const batchSize = 49;
+
+    for (let index = 0; index < recipients.length; index += batchSize) {
+      const batch = recipients.slice(index, index + batchSize);
+      const response = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          "Idempotency-Key": `probook-${prompt.id}-${crypto.randomUUID()}`
+        },
+        body: JSON.stringify({
+          from,
+          to: [senderAddress],
+          bcc: batch,
+          subject: `Промт ProBook: ${prompt.title}`,
+          text: `${prompt.title}\n\n${prompt.content}\n\nОтправлено из ProBook.`
+        })
+      });
+
+      if (!response.ok) {
+        const providerError = await response.text();
+        console.error("Resend rejected email:", {
+          status: response.status,
+          response: providerError
+        });
+
+        return {
+          status: "error",
+          message:
+            "Почтовый сервис отклонил отправку. Проверьте API-ключ и подтверждение домена."
+        };
+      }
+    }
+
+    return {
+      status: "success",
+      message: `Письмо успешно отправлено: ${recipients.length} получател${recipients.length === 1 ? "ю" : "ям"}.`
+    };
+  } catch (error) {
+    console.error("Failed to send prompt email:", error);
+    return {
+      status: "error",
+      message: "Не удалось отправить письмо. Попробуйте ещё раз."
     };
   }
 }
