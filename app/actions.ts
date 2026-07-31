@@ -45,8 +45,18 @@ export async function createPrompt(
   }
 
   try {
-    await getPrisma().note.create({
-      data: { title, content }
+    const prisma = getPrisma();
+    const owner = await prisma.user.upsert({
+      where: { email: "app@probook.local" },
+      update: {},
+      create: {
+        email: "app@probook.local",
+        name: "ProBook"
+      }
+    });
+
+    await prisma.note.create({
+      data: { title, content, ownerId: owner.id }
     });
     revalidatePath("/");
 

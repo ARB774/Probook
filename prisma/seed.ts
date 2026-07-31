@@ -15,6 +15,15 @@ const adapter = new PrismaNeon({ connectionString });
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
+  const owner = await prisma.user.upsert({
+    where: { email: "seed@probook.local" },
+    update: {},
+    create: {
+      email: "seed@probook.local",
+      name: "ProBook Seed"
+    }
+  });
+
   const title = "Первая заметка из NeonDB";
   const existingNote = await prisma.note.findFirst({ where: { title } });
 
@@ -26,7 +35,7 @@ async function main() {
         data: existingNote.content ? {} : { content }
       })
     : await prisma.note.create({
-        data: { title, content }
+        data: { title, content, ownerId: owner.id }
       });
 
   console.log(`Seed note is ready: ${note.title}`);
