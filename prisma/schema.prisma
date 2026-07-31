@@ -10,5 +10,13 @@ datasource db {
 model Note {
   id        String   @id @default(uuid()) @db.Uuid
   title     String
+  content   String   @default("")
+  createdAt DateTime @default(now())
+}
+
+model Friend {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  email     String   @unique
   createdAt DateTime @default(now())
 }

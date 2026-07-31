@@ -18,8 +18,16 @@ async function main() {
   const title = "Первая заметка из NeonDB";
   const existingNote = await prisma.note.findFirst({ where: { title } });
 
-  const note =
-    existingNote ?? (await prisma.note.create({ data: { title } }));
+  const content =
+    "Этот тестовый промт подтверждает, что ProBook читает данные из NeonDB.";
+  const note = existingNote
+    ? await prisma.note.update({
+        where: { id: existingNote.id },
+        data: existingNote.content ? {} : { content }
+      })
+    : await prisma.note.create({
+        data: { title, content }
+      });
 
   console.log(`Seed note is ready: ${note.title}`);
 }
