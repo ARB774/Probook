@@ -13,16 +13,17 @@ enum Visibility {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
+  id            String       @id @default(cuid())
+  email         String       @unique
   name          String?
   image         String?
   emailVerified DateTime?
   passwordHash  String?
-  createdAt     DateTime  @default(now())
+  createdAt     DateTime     @default(now())
   notes         Note[]
   prompts       Txt[]
   votes         Vote[]
+  likes         PromptLike[]
   accounts      Account[]
   sessions      Session[]
 }
@@ -39,20 +40,21 @@ model Note {
 }
 
 model Txt {
-  id          String     @id @default(cuid())
-  userId      String     @map("ownerId")
+  id          String       @id @default(cuid())
+  userId      String       @map("ownerId")
   title       String
   content     String
   description String?
   categoryId  String
-  visibility  Visibility @default(PRIVATE)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  visibility  Visibility   @default(PRIVATE)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
   publishedAt DateTime?
-  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category    Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category    Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   tags        Tag[]
   votes       Vote[]
+  likes       PromptLike[]
 
   @@index([userId, updatedAt])
   @@index([visibility, createdAt])
@@ -107,6 +109,18 @@ model Vote {
   @@unique([userId, promptId])
   @@index([promptId])
   @@index([userId])
+}
+
+model PromptLike {
+  id        String   @id @default(cuid())
+  userId    String
+  promptId  String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prompt    Txt      @relation(fields: [promptId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, promptId])
+  @@index([promptId])
 }
 
 model Category {

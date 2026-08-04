@@ -294,6 +294,36 @@ h2 {
   border-bottom: 1px solid var(--line);
 }
 
+.library-tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.sort-control {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-solid);
+}
+
+.sort-link {
+  padding: 7px 10px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.sort-link--active {
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+
 .status {
   display: inline-flex;
   align-items: center;
@@ -379,6 +409,66 @@ h2 {
   font-size: 0.7rem;
   font-weight: 700;
   white-space: nowrap;
+}
+
+.like-control {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.like-button {
+  display: inline-flex;
+  min-width: 54px;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-solid);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 700;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease;
+}
+
+.like-button svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.like-button:hover,
+.like-button--active {
+  border-color: rgba(52, 99, 74, 0.35);
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+
+.like-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.like-error {
+  position: absolute;
+  z-index: 2;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 220px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--error-soft);
+  color: var(--error);
+  font-size: 0.72rem;
+  line-height: 1.35;
+  box-shadow: 0 8px 24px rgba(57, 50, 37, 0.12);
 }
 
 .friend-list strong {
@@ -797,6 +887,12 @@ h2 {
   .form-footer {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .library-tools {
+    width: 100%;
+    align-items: flex-start;
+    justify-content: flex-start;
   }
 
   .prompt-list li,

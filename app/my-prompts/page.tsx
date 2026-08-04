@@ -17,14 +17,25 @@ export default async function MyPromptsPage() {
         title: true,
         content: true,
         visibility: true,
-        createdAt: true
+        createdAt: true,
+        _count: { select: { likes: true } },
+        likes: {
+          where: { userId: user.id },
+          select: { id: true },
+          take: 1
+        }
       }
     }),
     prisma.friend.count()
   ]);
   const items: PromptItem[] = prompts.map((prompt) => ({
-    ...prompt,
-    createdAt: prompt.createdAt.toISOString()
+    id: prompt.id,
+    title: prompt.title,
+    content: prompt.content,
+    visibility: prompt.visibility,
+    createdAt: prompt.createdAt.toISOString(),
+    likesCount: prompt._count.likes,
+    likedByMe: prompt.likes.length > 0
   }));
 
   return (
@@ -45,7 +56,12 @@ export default async function MyPromptsPage() {
           </div>
           <span className="status">{items.length} шт.</span>
         </div>
-        <PromptList prompts={items} friendCount={friendCount} canSend />
+        <PromptList
+          prompts={items}
+          friendCount={friendCount}
+          canSend
+          canLike
+        />
       </section>
     </main>
   );

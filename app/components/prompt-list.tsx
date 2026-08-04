@@ -6,6 +6,7 @@ import {
   sendPromptToFriends,
   type SendPromptState
 } from "@/app/actions";
+import { LikeButton } from "@/app/components/like-button";
 
 export type PromptItem = {
   id: string;
@@ -13,18 +14,22 @@ export type PromptItem = {
   content: string;
   visibility: "PRIVATE" | "PUBLIC";
   createdAt: string;
+  likesCount: number;
+  likedByMe: boolean;
 };
 
 type PromptListProps = {
   prompts: PromptItem[];
   friendCount: number;
   canSend: boolean;
+  canLike: boolean;
 };
 
 export function PromptList({
   prompts,
   friendCount,
-  canSend
+  canSend,
+  canLike
 }: PromptListProps) {
   const [selected, setSelected] = useState<PromptItem | null>(null);
   const [sendState, setSendState] = useState<SendPromptState>({
@@ -93,6 +98,14 @@ export function PromptList({
             <span className="prompt-visibility">
               {prompt.visibility === "PRIVATE" ? "Приватный" : "Публичный"}
             </span>
+            {prompt.visibility === "PUBLIC" ? (
+              <LikeButton
+                canLike={canLike}
+                initialCount={prompt.likesCount}
+                initialLiked={prompt.likedByMe}
+                promptId={prompt.id}
+              />
+            ) : null}
             <time dateTime={prompt.createdAt}>
               {new Intl.DateTimeFormat("ru-RU", {
                 dateStyle: "medium",

@@ -10,7 +10,13 @@ import { auth } from "@/auth";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-async function loadData(userId?: string): Promise<{
+type PromptSort = "popular" | "recent";
+
+type HomePageProps = {
+  searchParams: Promise<{ sort?: string }>;
+};
+
+async function loadData(userId: string | undefined, sort: PromptSort): Promise<{
   prompts: PromptItem[];
   friendCount: number;
   error: string | null;
@@ -18,19 +24,24 @@ async function loadData(userId?: string): Promise<{
   try {
     const [prompts, friendCount] = await Promise.all([
       getPrisma().txt.findMany({
-        where: userId
-          ? {
-              OR: [{ visibility: "PUBLIC" }, { userId }]
-            }
-          : { visibility: "PUBLIC" },
-        orderBy: { createdAt: "desc" },
+        where: { visibility: "PUBLIC" },
+        orderBy:
+          sort === "popular"
+            ? [{ likes: { _count: "desc" } }, { createdAt: "desc" }]
+            : { createdAt: "desc" },
         take: 100,
         select: {
           id: true,
           title: true,
           content: true,
           visibility: true,
-          createdAt: true
+          createdAt: true,
+          _count: { select: { likes: true } },
+          likes: {
+            where: { userId: userId ?? "" },
+            select: { id: true },
+            take: 1
+          }
         }
       }),
       userId ? getPrisma().friend.count() : Promise.resolve(0)
@@ -38,8 +49,13 @@ async function loadData(userId?: string): Promise<{
 
     return {
       prompts: prompts.map((prompt) => ({
-        ...prompt,
-        createdAt: prompt.createdAt.toISOString()
+        id: prompt.id,
+        title: prompt.title,
+        content: prompt.content,
+        visibility: prompt.visibility,
+        createdAt: prompt.createdAt.toISOString(),
+        likesCount: prompt._count.likes,
+        likedByMe: prompt.likes.length > 0
       })),
       friendCount,
       error: null
@@ -55,9 +71,13 @@ async function loadData(userId?: string): Promise<{
   }
 }
 
-export default async function Home() {
-  const session = await auth();
-  const { prompts, friendCount, error } = await loadData(session?.user?.id);
+export default async function Home({ searchParams }: HomePageProps) {
+  const [session, params] = await Promise.all([auth(), searchParams]);
+  const sort: PromptSort = params.sort === "popular" ? "popular" : "recent";
+  const { prompts, friendCount, error } = await loadData(
+    session?.user?.id,
+    sort
+  );
 
   return (
     <main className="page-shell">
@@ -92,11 +112,29 @@ export default async function Home() {
           <div className="card-header">
             <div>
               <p className="eyebrow">Библиотека</p>
-              <h2>Все промты</h2>
+              <h2>Публичные книги</h2>
             </div>
-            <span className={error ? "status status--error" : "status"}>
-              {error ? "Нет подключения" : `${prompts.length} шт.`}
-            </span>
+            <div className="library-tools">
+              <nav aria-label="Сортировка публичных книг" className="sort-control">
+                <Link
+                  aria-current={sort === "recent" ? "page" : undefined}
+                  className={sort === "recent" ? "sort-link sort-link--active" : "sort-link"}
+                  href="/?sort=recent"
+                >
+                  По дате
+                </Link>
+                <Link
+                  aria-current={sort === "popular" ? "page" : undefined}
+                  className={sort === "popular" ? "sort-link sort-link--active" : "sort-link"}
+                  href="/?sort=popular"
+                >
+                  По популярности
+                </Link>
+              </nav>
+              <span className={error ? "status status--error" : "status"}>
+                {error ? "Нет подключения" : `${prompts.length} шт.`}
+              </span>
+            </div>
           </div>
 
           {error ? (
@@ -106,6 +144,7 @@ export default async function Home() {
               prompts={prompts}
               friendCount={friendCount}
               canSend={Boolean(session?.user)}
+              canLike={Boolean(session?.user)}
             />
           )}
         </div>
