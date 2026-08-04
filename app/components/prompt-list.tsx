@@ -1,11 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState, useTransition } from "react";
-import {
-  sendPromptToFriends,
-  type SendPromptState
-} from "@/app/actions";
+import { useEffect, useState } from "react";
 import { LikeButton } from "@/app/components/like-button";
 
 export type PromptItem = {
@@ -20,23 +15,14 @@ export type PromptItem = {
 
 type PromptListProps = {
   prompts: PromptItem[];
-  friendCount: number;
-  canSend: boolean;
   canLike: boolean;
 };
 
 export function PromptList({
   prompts,
-  friendCount,
-  canSend,
   canLike
 }: PromptListProps) {
   const [selected, setSelected] = useState<PromptItem | null>(null);
-  const [sendState, setSendState] = useState<SendPromptState>({
-    status: "idle",
-    message: ""
-  });
-  const [isSending, startSending] = useTransition();
 
   useEffect(() => {
     if (!selected) {
@@ -57,23 +43,6 @@ export function PromptList({
       window.removeEventListener("keydown", closeOnEscape);
     };
   }, [selected]);
-
-  function closeModal() {
-    setSelected(null);
-    setSendState({ status: "idle", message: "" });
-  }
-
-  function sendToFriends() {
-    if (!selected) {
-      return;
-    }
-
-    setSendState({ status: "idle", message: "" });
-    startSending(async () => {
-      const result = await sendPromptToFriends(selected.id);
-      setSendState(result);
-    });
-  }
 
   if (prompts.length === 0) {
     return (
@@ -120,7 +89,7 @@ export function PromptList({
         <div
           className="modal-backdrop"
           role="presentation"
-          onMouseDown={closeModal}
+          onMouseDown={() => setSelected(null)}
         >
           <section
             className="modal"
@@ -133,7 +102,7 @@ export function PromptList({
               className="modal-close"
               type="button"
               aria-label="Закрыть"
-              onClick={closeModal}
+              onClick={() => setSelected(null)}
             >
               ×
             </button>
@@ -142,42 +111,14 @@ export function PromptList({
             <div className="prompt-content">{selected.content}</div>
 
             <div className="modal-actions">
-              {!canSend ? (
-                <Link className="button" href="/login">
-                  Войти для отправки
-                </Link>
-              ) : friendCount > 0 ? (
-                <button
-                  className="button"
-                  type="button"
-                  disabled={isSending}
-                  onClick={sendToFriends}
-                >
-                  {isSending ? "Отправляем…" : "Отправить друзьям"}
-                </button>
-              ) : (
-                <Link className="button" href="/friends">
-                  Сначала добавьте друзей
-                </Link>
-              )}
               <button
                 className="button button--secondary"
                 type="button"
-                onClick={closeModal}
+                onClick={() => setSelected(null)}
               >
                 Закрыть
               </button>
             </div>
-
-            {sendState.message ? (
-              <p
-                className={`send-message send-message--${sendState.status}`}
-                role="status"
-                aria-live="polite"
-              >
-                {sendState.message}
-              </p>
-            ) : null}
           </section>
         </div>
       ) : null}

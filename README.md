@@ -104,14 +104,6 @@ pnpm dev
    **Project Settings → Environment Variables**.
    При Neon Vercel Integration вместо `DIRECT_URL` можно использовать
    автоматически созданную `DATABASE_URL_UNPOOLED`.
-   Для реальной отправки писем также добавьте:
-
-   ```dotenv
-   RESEND_API_KEY="re_xxxxxxxxx"
-   RESEND_FROM_EMAIL="ProBook <prompts@ваш-подтверждённый-домен.ru>"
-   ```
-
-   Перед этим создайте API-ключ и подтвердите домен отправителя в Resend.
 3. До первого запуска примените миграцию к Neon:
 
    ```bash

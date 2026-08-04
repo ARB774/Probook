@@ -7,27 +7,24 @@ export const dynamic = "force-dynamic";
 export default async function MyPromptsPage() {
   const user = await requireUser();
   const prisma = getPrisma();
-  const [prompts, friendCount] = await Promise.all([
-    prisma.txt.findMany({
-      where: { userId: user.id },
-      orderBy: { updatedAt: "desc" },
-      take: 100,
-      select: {
-        id: true,
-        title: true,
-        content: true,
-        visibility: true,
-        createdAt: true,
-        _count: { select: { likes: true } },
-        likes: {
-          where: { userId: user.id },
-          select: { id: true },
-          take: 1
-        }
+  const prompts = await prisma.txt.findMany({
+    where: { userId: user.id },
+    orderBy: { updatedAt: "desc" },
+    take: 100,
+    select: {
+      id: true,
+      title: true,
+      content: true,
+      visibility: true,
+      createdAt: true,
+      _count: { select: { likes: true } },
+      likes: {
+        where: { userId: user.id },
+        select: { id: true },
+        take: 1
       }
-    }),
-    prisma.friend.count()
-  ]);
+    }
+  });
   const items: PromptItem[] = prompts.map((prompt) => ({
     id: prompt.id,
     title: prompt.title,
@@ -56,12 +53,7 @@ export default async function MyPromptsPage() {
           </div>
           <span className="status">{items.length} шт.</span>
         </div>
-        <PromptList
-          prompts={items}
-          friendCount={friendCount}
-          canSend
-          canLike
-        />
+        <PromptList prompts={items} canLike />
       </section>
     </main>
   );

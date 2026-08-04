@@ -18,34 +18,30 @@ type HomePageProps = {
 
 async function loadData(userId: string | undefined, sort: PromptSort): Promise<{
   prompts: PromptItem[];
-  friendCount: number;
   error: string | null;
 }> {
   try {
-    const [prompts, friendCount] = await Promise.all([
-      getPrisma().txt.findMany({
-        where: { visibility: "PUBLIC" },
-        orderBy:
-          sort === "popular"
-            ? [{ likes: { _count: "desc" } }, { createdAt: "desc" }]
-            : { createdAt: "desc" },
-        take: 100,
-        select: {
-          id: true,
-          title: true,
-          content: true,
-          visibility: true,
-          createdAt: true,
-          _count: { select: { likes: true } },
-          likes: {
-            where: { userId: userId ?? "" },
-            select: { id: true },
-            take: 1
-          }
+    const prompts = await getPrisma().txt.findMany({
+      where: { visibility: "PUBLIC" },
+      orderBy:
+        sort === "popular"
+          ? [{ likes: { _count: "desc" } }, { createdAt: "desc" }]
+          : { createdAt: "desc" },
+      take: 100,
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        visibility: true,
+        createdAt: true,
+        _count: { select: { likes: true } },
+        likes: {
+          where: { userId: userId ?? "" },
+          select: { id: true },
+          take: 1
         }
-      }),
-      userId ? getPrisma().friend.count() : Promise.resolve(0)
-    ]);
+      }
+    });
 
     return {
       prompts: prompts.map((prompt) => ({
@@ -57,14 +53,12 @@ async function loadData(userId: string | undefined, sort: PromptSort): Promise<{
         likesCount: prompt._count.likes,
         likedByMe: prompt.likes.length > 0
       })),
-      friendCount,
       error: null
     };
   } catch (error) {
     console.error("Failed to load ProBook data:", error);
     return {
       prompts: [],
-      friendCount: 0,
       error:
         "Не удалось подключиться к NeonDB. Проверьте DATABASE_URL и примените миграции."
     };
@@ -74,10 +68,7 @@ async function loadData(userId: string | undefined, sort: PromptSort): Promise<{
 export default async function Home({ searchParams }: HomePageProps) {
   const [session, params] = await Promise.all([auth(), searchParams]);
   const sort: PromptSort = params.sort === "popular" ? "popular" : "recent";
-  const { prompts, friendCount, error } = await loadData(
-    session?.user?.id,
-    sort
-  );
+  const { prompts, error } = await loadData(session?.user?.id, sort);
 
   return (
     <main className="page-shell">
@@ -142,8 +133,6 @@ export default async function Home({ searchParams }: HomePageProps) {
           ) : (
             <PromptList
               prompts={prompts}
-              friendCount={friendCount}
-              canSend={Boolean(session?.user)}
               canLike={Boolean(session?.user)}
             />
           )}
